@@ -31,6 +31,8 @@ Design a data structure to compute largest k for $2^k \le j - i + 1$ in constant
 \end{ques}
 \b{Overview:} we simply precompute $k$ such that $2^k \le i < 2^{k+1}$ for $1 \le i \le n$ and store the values in an array.
 
+\b{Representation:} an array of integers.
+
 \b{Preprocessing:} Initialize an array $A$ of length n+1 (allowing one-indexing for simplicity). 
 
 Starting with $k = 0, p = 2^k = 1, x = 1$. Repeat $\big($ [If $2p \le x$ then increment $k$ and set $p = 2p$.] Write $A[x] = k$. Increment x. $\big)$ until the array is filled in, and $x = n + 1$.
@@ -49,33 +51,50 @@ A query requires some arithmetic and an array access, which takes $O(1)$ time.
 \end{ques}
 \begin{enumerate}[i.]
   \item An $\pq{mn}{min(m,n)}$ data structure for AMQ.
-  % Preprocess: DP, constant work at each square
-  % Lookup: walk along shorter edge, find shortest contained
 
-  % Idea 2:
-  % Block-ify each row
-  % Block-ify each column
+  \b{Note: assume WLOG that $m < n$. That is, we have more columns than we have rows. If not, rotate your screen or switch all the m's and n's in this proof.}
 
-  % Idea 3:
-  % Blocks with side length b = sqrt min(n, m)
-  % O(nm) work to set up
-  % O(b^2) work to scan blocks at four corners
-  % O(n / b) work looking at block minimums inside larger block
-  % How to deal with edges?
+  \b{Overview:} we solve RMQ for each row of the rectangle, then iterate through our RMQs on each AMQ query.
 
-  % Idea 4: 
-  % Block-ify rows with sqrt #cols block size, for rows > cols
-  % O(nm) work to set up
-  % Each row: O(b) work at edges, O(n / b) between
-  % Times m rows
-  % O(m rt m) too slow!
+  \b{Representation:} we use an array of m Fischer-Heun structures, each of size n. The Fischer-Heun structures are represented with arrays (sparse tables on top and precomputed cartesian-tree-indexed RMQs on the bottom)
 
-  % Idea 5:
-  % Block-ify rows, then block-ify the columns of blocks
+  \b{Preprocessing:} build a Fisher-Heun Structure on each row of A. So, $(i, 0), (i, n-1)$ for $0 \le i < n$. This will build m structures of size n, so the total preprocessing time is $m * O(n) = O(mn)$, since Fisher-Heun Structures were shown in lecture to take linear preprocessing time.
+
+  \b{Querying:} To answer $AMQ_A((i,j),(k,l))$:
+
+  Use the Fisher-Heun Structures to find $RMQ_x (j,l)$ for rows $x \in \{i, i + 1, ..., k\}$ and take the running minimum of those results. We will need at most $m$ queries, since we have $m$ rows. Each query takes $O(1)$ time as shown in lecture, so our total query time is $O(m) = O(min(m,n))$ by the \b{note}.
+
   \item An $\pq{mn \lg m \lg n}{1}$ data structure for AMQ.
-  % Idea: ***
-  % Sparse table of squares
-  % A square of side length n can always be formed by 4 squares of side length 2^k
+  
+  \b{Overview:} we build a sparse table of rectangles with dimensions $2^i$ by $2^j$. We can construct any queried rectangle out of a constant number (4)of these power-of-two rectangles, which will give us the constant query time.
+
+  \b{Representation:} we represent the sparse table with a 4D array called $S$, with dimensions n by m by $\lg m$ by $\lg n$. In addition, we use a k-finding structure (described in Question 1) of length $max(m,n)$.
+
+  \b{Preprocessing:} Fill out the k-finding structure as in Question 1. This takes $O(max(m,n))$ time.
+
+  Next, we fill out the sparse table. For every location $(i,j)$ we compute and store the AMQ for all rectangles with upper left corner $(i, j)$ with width $w$ and height $h$, for $w,h \in \{ 2^0, 2^1, ... 2^k \}$ as long as the rectangles fit inside the original area. The maximum dimensions of the rectangle are $2^{\lg n}$ by $2^{\lg m}$ and there are $m*n$ potential upper-left corners so we have $O(mn\lg m \lg n)$ rectangles to compute.
+
+  We start by filling in $S[i][j][0][0] = A[i][j]$ for all $i,j$. This takes $O(mn)$ time.
+
+  We can fill in the rest using dynamic programming, in ascending order of area. We can compute all $1x2$ blocks by examining the two $1x1$ blocks that make them up; $2x2$ blocks by two of the four possible $1x2$ blocks that make them up; etc. This requires some tricky array indexing, but clearly every rectangle can be computed from a constant number (2) of smaller rectangles. Therefore each DP step is constant time, giving us a total runtime of $O(mn\lg m \lg n)$ necessary to compute and store the $O(mn\lg m \lg n)$ rectangles' AMQ values in the sparse table.
+
+  The total runtime of the preprocessing is $O(max(m,n) + mn + mn\lg m \lg n) = O(mn\lg m \lg n)$.
+
+  \b{Querying:} To answer $AMQ_A((i,j),(k,l))$:
+
+  We find the largest $x$ such that $2^x \le k - i + 1$ and the largest $y$ such that $2^y \le l - j + 1$.
+
+  We can overlap rectangles 
+  $$B = ((i, j), (i + 2^x - 1, j + 2^y - 1)),$$ 
+  $$C = ((k - 2^x + 1, j), (k, j + 2^y - 1)),$$
+  $$D = ((k - 2^x + 1, l - 2^y + 1), (k, l)),$$
+  $$E = ((i, l - 2^y + 1), (i + 2^x - 1, l))$$
+  to form the original area $A = ((i,j),(k,l))$.
+
+  This is evident as an extension of the proof in 1 dimension shown in class. Each rectangle shares one corner with A, has width greater than half A's width and height greater than half A's height, so $B+C+D+E = A$.
+
+  We can look up any of those four rectangles in $O(1)$ time with an array access, e.g. $B = S[i][j][x][y]$, for a total query time of $O(1)$.
+
 \end{enumerate}
 
 \begin{ques}[Hybrid RMQ Structures]
