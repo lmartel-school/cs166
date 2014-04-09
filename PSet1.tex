@@ -1,0 +1,115 @@
+\documentclass{article}
+\usepackage{amsthm, amssymb, amsmath,verbatim}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumerate}
+\usepackage{multicol}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\N}{\mathbb{N}}
+
+\newtheorem*{claim}{Claim}
+\newtheorem{ques}{Question}
+\newtheorem*{soln}{Solution}
+\newtheorem*{prf}{Proof}
+
+\newcommand{\pq}[2]{\langle O(#1), O(#2) \rangle}
+\renewcommand{\b}[1]{\textbf{#1}}
+
+\title{CS 166 Homework 1}
+\author{Leo Martel (lmartel)}
+\date{4/9/2014}
+
+\begin{document}
+
+\maketitle
+
+\begin{ques}[Sparse Tables with O(1) Queries]
+Design a data structure to compute largest k for $2^k \le j - i + 1$ in constant time for use in RMQ.
+\end{ques}
+\b{Overview:} we simply precompute $k$ such that $2^k \le i < 2^{k+1}$ for $1 \le i \le n$ and store the values in an array.
+
+\b{Preprocessing:} Initialize an array $A$ of length n+1 (allowing one-indexing for simplicity). 
+
+Starting with $k = 0, p = 2^k = 1, x = 1$. Repeat $\big($ [If $2p \le x$ then increment $k$ and set $p = 2p$.] Write $A[x] = k$. Increment x. $\big)$ until the array is filled in, and $x = n + 1$.
+
+Each step gives us the correct k, because we start with correct $k=0$ for $x=1$, and by induction if $k$ is correct for $x - 1$, either $k+1$ is correct for $x$ (which we check) or $k$ is correct for $x$, which we fall back to. This is because adding 1 never moves us past more than one power of two.
+
+Each step takes $O(1)$ time, doing only multiplication, an array write and a few increments. We do n steps, since we increment x each time from 1 to n. So the total preprocessing work is $O(n)$
+
+\b{Querying:} $A[j - i + 1] = k$ gives us the largest k such that $2^k \le j - i + 1$, as shown in the previous step.
+
+The minimum range $j - i + 1 = 1$ and the maximum range is $n$, so all possible valid queries can be answered by the array.
+
+A query requires some arithmetic and an array access, which takes $O(1)$ time.
+
+\begin{ques}[Area Minimum Queries]
+\end{ques}
+\begin{enumerate}[i.]
+  \item An $\pq{mn}{min(m,n)}$ data structure for AMQ.
+  % Preprocess: DP, constant work at each square
+  % Lookup: walk along shorter edge, find shortest contained
+
+  % Idea 2:
+  % Block-ify each row
+  % Block-ify each column
+
+  % Idea 3:
+  % Blocks with side length b = sqrt min(n, m)
+  % O(nm) work to set up
+  % O(b^2) work to scan blocks at four corners
+  % O(n / b) work looking at block minimums inside larger block
+  % How to deal with edges?
+
+  % Idea 4: 
+  % Block-ify rows with sqrt #cols block size, for rows > cols
+  % O(nm) work to set up
+  % Each row: O(b) work at edges, O(n / b) between
+  % Times m rows
+  % O(m rt m) too slow!
+
+  % Idea 5:
+  % Block-ify rows, then block-ify the columns of blocks
+  \item An $\pq{mn \lg m \lg n}{1}$ data structure for AMQ.
+  % Idea: ***
+  % Sparse table of squares
+  % A square of side length n can always be formed by 4 squares of side length 2^k
+\end{enumerate}
+
+\begin{ques}[Hybrid RMQ Structures]
+\end{ques}
+\begin{enumerate}[i.]
+  \item Lemma: for any fixed $k \ge 1$, there is an RMQ data structure with time complexity $\pq{n \lg^{(k)} n}{1}$ called $D_k$.
+
+  Proof: by induction on k.
+
+  Base case: $k = 1$. A sparse table gives us time complexity $\pq{n \lg n}{1}$, proved in class.
+
+  Inductive step: given $D_k$, can we build $D_{k+1}$?
+
+  We use the hybrid approach with $D_k$ as both our top and bottom RMQ structures, with a block size of log n.
+
+  Preprocessing time: ($p_1 = p_2 = O(n \lg^{(k)} n))$)
+  $$O(n + p_1(n/b) + (n/b)p_2(b))$$
+  We have $p_1(n/b) = (n/ \lg n) \lg^{(k)} (n / \lg n) \le (n/\lg n)\lg^{(k)} n$ (since $(n / \lg n) \le n$ for sufficiently large n) 
+
+  And then $(n/\lg n)\lg^{(k)} n \le (n/\lg n)\lg n = n$ (since $\lg^{(k)} n \le \lg n$) so $p_1(n/b) = O(n)$.
+  $$=O(n + n + (n / \lg n) b \lg^{(k)} b)$$
+  $$=O(2n + (n / \lg n) \lg n \lg^{(k)} \lg n)$$
+  $$=O(n \lg^{(k+1)} n)$$
+
+  Query time: ($q_1 = q_2 = O(1)$)
+  $$O(q_1(n/b) + q_2(b))$$
+  $$=O(1)$$
+
+  So this hybrid approach is $D_{k+1}$, completing the induction.
+  \item Query times increase because the constant factor increases. The asymptotic runtime is $O(1)$ because the runtime does not depend on $n$, only on $k$--the number of logs we're taking--which is not related to the size of the input. The source of the runtime increase is that each level of hybridization requires us to build two RMQ structures for the top and the bottom, which are hybrids themselves, and so on.
+\end{enumerate}
+
+\begin{ques}[Implementation]
+Turned in electronically.
+\end{ques}
+
+\end{document} 

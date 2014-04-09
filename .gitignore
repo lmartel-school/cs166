@@ -1,0 +1,8 @@
+# pdflatex junk
+*.log
+*.aux
+
+# intellij junk
+*.idea
+*.iml
+
