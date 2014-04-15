@@ -1,0 +1,92 @@
+\documentclass{article}
+\usepackage{amsthm, amssymb, amsmath,verbatim}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumerate}
+\usepackage{multicol}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\N}{\mathbb{N}}
+
+\newtheorem*{claim}{Claim}
+\newtheorem{ques}{Question}
+\newtheorem*{soln}{Solution}
+\newtheorem*{prf}{Proof}
+
+\newcommand{\pq}[2]{\langle O(#1), O(#2) \rangle}
+\renewcommand{\b}[1]{\textbf{#1}}
+
+\title{CS 166 Homework 1}
+\author{Leo Martel (lmartel)}
+\date{4/9/2014}
+
+\begin{document}
+
+\maketitle
+
+\begin{ques}[Prrgmrr] 
+Not yet submitted
+\end{ques}
+
+\begin{ques}[Flexible Sequences] % DONE
+\end{ques}
+% R/B tree, with index as key and item as value
+\b{Overview:} We use an Order Statistic tree with a modified insertion scheme (rather than sorting by value, we explicitly choose the position of each node as we insert them).
+\b{Representation:} A Red/Black tree (or any balanced BST with guaranteed O(\lg n) height) that tracks the following information (in addition to left/right child) at every node n:
+\begin{itemize}
+  \item $n.l$: # items in left subtree
+  \item $n.r$: # items in right subtree
+  \item $n.t$: $1 + n.l + n.r$
+\end{itemize}
+We proved in lecture that maintaining this augmentation does not change the runtime of any BST operations, and enables $select(k)$ and $rank(v)$ in $O(\lg n)$ time.
+
+\b{Operations:}
+\begin{itemize}
+  \item seq.insert(i, x): run $select(i)$ to find the $i$th order statistic (call it node $n_i$), and insert a new $n_x = node(x)$ between $n_i$ and its in-order predecessor as normal. Select runs in $O(n)$ time and insert runs in $O(\lg n)$ time for a total runtime of $O(\lg n)$.
+  \item seq.delete(i): run $select(i)$ to find the $i$th element, then delete it as normal. $O(\lg n) + O(\lg n) = O(\lg n)$ total runtime.
+  \item seq.lookup(i): run $select(i)$ and return the value found. $O(\lg n)$ time.
+  \item seq.set(i, x): run $select(i)$ and replace the value in the found node with $x$. Since the tree is not sorted by x-values no rebalancing is necessary, which means the $O(\lg n)$ select operation is the total runtime.
+  \item seq.size(): $root.t$ is the number of elements in the sequence. $O(1)$.
+  \item split(seq, i): run $select(i)$ and run the normal BST split operation at that node, giving us $seq_1$ and $seq_2$ back. We can quickly fix the additional fields by recalculating the values for all (ex-)ancestors of the (ex-) $i$th node. Since the fields can be calculated locally we know only ancestors of $n_i$ need to be recalculated; since it has $O(\lg n)$ ancestors this recalculation takes $O(\lg n)$ time. The split took $O(\lg n)$ time, giving us a total runtime of $O(\lg n)$
+  \item concat($seq_1, seq_2$): run $seq_1.delete(seq_1.size() - 1)$ to retrieve the last element k of $seq_1$ in $O(\lg n)$ time, then run $join(seq_1, k, seq_2)$ as normal. Similarly to above, only new ancestors of $k$ will need to be updated, so the updates will take $O(\lg n)$ time. The join takes $O(1 + |h_1 - h_2|) \le O(1 + \lg n) = O(\lg n)$ for significant n, so our total runtime is $3O(\lg n) = O(\lg n)$.
+\end{itemize}
+And that's everything. 
+
+\begin{ques}[Dynamic Maximum Overlap]
+\begin{enumerate}[i.]
+  \item % DONE
+  \b{Overview:} we make a sorted list of event start times and a sorted list of event end times, and iterate through to find the maximum (# started - # ended) at any point in time.
+  \b{Representation:} we use two arrays, $[s_i]$ and $[t_i]$, a cursor in each array, an int maxOverlap, and an int $\delta$.
+  \b{Algorithm:} first, copy the start times into one array and the end times into another, then sort both in ascending order. Runtime so far: $O(n) + O(n) + O(n\lg n) + O(n\lg n) = O(n\lg n)$ assuming an optimal comparison sort. Start both cursors, $s_c$ and $t_c$ at position $-1$.
+
+  Iterate the following until all start times have been visited:
+
+  Move $s_c$ forward one spot, and increment $\delta$, representing a new event starting. Repeat (Move $t_c$ forward; decrement $\delta$) while the next end time $t_j$ is less than or equal to (since we're using open intervals) the current start time $s_i$, representing events that ended before $s_i$ began.
+
+  Now, record $\delta$ in $maxOverlap$ if it's a new maximum.
+
+  Each iteration takes only constant-time operations, and we always increment our start-time cursor once per iteration, so we do $O(n)$ work in this part of the algorithm. The total runtime is $O(n\lg n) + O(n) = O(n\lg n)$.
+
+  \b{Proof of correctness:} at any start time $s_i$, we have ``started'' all events that start before $s_i$, because we visit the start times in sorted order. Similarly, we have ``ended'' all events that end before $s_i$, because we visit end times until we can't anymore without surpassing $s_i$. Observe that the number of simultaneous events at any point in time is the number of events that have started but not ended. In addition, this number only increases at the moment an event starts; thus, the maximum will occur at one of these moments. We do examine all the start times, ensuring we get the correct maximum.
+
+  \item 
+  % Red/Black tree of start times with addl info: 
+  %     max overlap of subtree rooted at node
+  %     start time of this maximum overlap interval
+  %     end time of this maximum overlap interval
+
+  % Red/Black tree of {start, end} times [possibly with end times rearranged/sorted?]
+
+  % Red/Black tree of times (both start and end) with:
+  %     score: +1 or -1 for start or end
+  %     max score-so-far of either child
+  %     total score of subtree ?
+  %     score-so-far at node.time
+  %         left-child vs right-child, something with score of children
+\end{enumerate}
+\end{ques}
+
+
+\end{document}
