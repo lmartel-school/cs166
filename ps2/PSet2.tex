@@ -34,10 +34,11 @@ Not yet submitted
 \end{ques}
 % R/B tree, with index as key and item as value
 \b{Overview:} We use an Order Statistic tree with a modified insertion scheme (rather than sorting by value, we explicitly choose the position of each node as we insert them).
-\b{Representation:} A Red/Black tree (or any balanced BST with guaranteed O(\lg n) height) that tracks the following information (in addition to left/right child) at every node n:
+
+\b{Representation:} A Red/Black tree (or any balanced BST with guaranteed $O(\lg n)$ height) that tracks the following information (in addition to left/right child) at every node n:
 \begin{itemize}
-  \item $n.l$: # items in left subtree
-  \item $n.r$: # items in right subtree
+  \item $n.l$: number of items in left subtree
+  \item $n.r$: number of items in right subtree
   \item $n.t$: $1 + n.l + n.r$
 \end{itemize}
 We proved in lecture that maintaining this augmentation does not change the runtime of any BST operations, and enables $select(k)$ and $rank(v)$ in $O(\lg n)$ time.
@@ -55,17 +56,20 @@ We proved in lecture that maintaining this augmentation does not change the runt
 And that's everything. 
 
 \begin{ques}[Dynamic Maximum Overlap]
+\end{ques}
 \begin{enumerate}[i.]
   \item % DONE
-  \b{Overview:} we make a sorted list of event start times and a sorted list of event end times, and iterate through to find the maximum (# started - # ended) at any point in time.
-  \b{Representation:} we use two arrays, $[s_i]$ and $[t_i]$, a cursor in each array, an int maxOverlap, and an int $\delta$.
+  \b{Overview:} we make a sorted list of event start times and a sorted list of event end times, and iterate through to find the maximum (num started - num ended) at any point in time.
+
+  \b{Representation:} we use two arrays, $[s_i]$ and $[t_i]$, a cursor in each array, an int maxOverlap, and an int $\Delta$.
+  
   \b{Algorithm:} first, copy the start times into one array and the end times into another, then sort both in ascending order. Runtime so far: $O(n) + O(n) + O(n\lg n) + O(n\lg n) = O(n\lg n)$ assuming an optimal comparison sort. Start both cursors, $s_c$ and $t_c$ at position $-1$.
 
   Iterate the following until all start times have been visited:
 
-  Move $s_c$ forward one spot, and increment $\delta$, representing a new event starting. Repeat (Move $t_c$ forward; decrement $\delta$) while the next end time $t_j$ is less than or equal to (since we're using open intervals) the current start time $s_i$, representing events that ended before $s_i$ began.
+  Move $s_c$ forward one spot, and increment $\Delta$, representing a new event starting. Repeat (Move $t_c$ forward; decrement $\delta$) while the next end time $t_j$ is less than or equal to (since we're using open intervals) the current start time $s_i$, representing events that ended before $s_i$ began.
 
-  Now, record $\delta$ in $maxOverlap$ if it's a new maximum.
+  Now, record $\Delta$ in $maxOverlap$ if it's a new maximum.
 
   Each iteration takes only constant-time operations, and we always increment our start-time cursor once per iteration, so we do $O(n)$ work in this part of the algorithm. The total runtime is $O(n\lg n) + O(n) = O(n\lg n)$.
 
@@ -73,13 +77,16 @@ And that's everything.
 
   \item 
   \b{Overview:} we use a augmented balanced BST of times (storing start and end times separately). We can separate start and end times without changing the max overlap, as proved in (i).
+
   \b{Representation:} a standard balanced BST (like a Red/Black tree) with the following information at each node:
   \begin{itemize}
     \item n.value: +1 for start times and -1 for end times 
     \item n.total: the sum of values of all the nodes in the subtree rooted at n
     \item n.max: the maximum overlap of the subtree rooted at n, starting at the first time in the subtree
   \end{itemize}
+  
   \b{Calculating n.total:} $n.total = n.left.total + n.value + n.right.total$, calculated in $O(1)$ time by examining child nodes (so it can be maintained without changing BST runtimes). Proof of correctness is trivial.
+  
   \b{Calculating n.max:} $n.max = max(n.left.max, n.left.total + n.value, n.left.total + n.value + n.right.max)$, calculated in $O(1)$ time by examining child nodes (so it can be maintained without changing BST runtimes).
 
   \b{Note:}  mean that n.total and n.max can be maintained through insertions and deletions
@@ -98,7 +105,7 @@ And that's everything.
 
   First, observe that $r.left.max$ and $r.right.max$ are correct, since their respective subtrees are of height $k$. 
 
-  Next, recall from part $(i)$ that the max overlap is the maximum sum of values (\pm 1) from the first time $n_0$ to some time $n_m$.
+  Next, recall from part $(i)$ that the max overlap is the maximum sum of values $(\pm 1)$ from the first time $n_0$ to some time $n_m$.
 
   Case 1: $n_m$ is contained in the left subtree. Thus the max overlap of the left subtree is the max overlap of the whole tree, so $r.left.max$ gives us the correct max overlap.
 
@@ -111,7 +118,9 @@ And that's everything.
   Next, by lemma 1, we know that the optimal $n_m$ within the whole tree is the same as the optimal $n_m$ within the right subtree. We also know that the leftmost value in the right subtree is $succ(r)$ by BST definition. Thus, 
   $$r.right.max = sumOfValues[succ(r), n_m]$$
   Adding these two results together gives us
-  $$max\ overlap = sumOfValues[n_0, n_m] = sumOfValues[n_0, r] + sumOfValues[succ(r), n_m] = r.left.total + r.value + r.right.max$$
+  $$max\ overlap = sumOfValues[n_0, n_m]$$
+  $$= sumOfValues[n_0, r] + sumOfValues[succ(r), n_m]$$
+  $$= r.left.total + r.value + r.right.max$$
 
   These 3 cases are exhaustive ($n_m$ has to be somewhere), so the max overlap will be one of these 3 results, 
   $$n.left.max, n.left.total + n.value, n.left.total + n.value + n.right.max$$
@@ -125,12 +134,10 @@ And that's everything.
   \begin{itemize}
     \item insert(s, t): insert s and t separately into the augmented BST. $2O(\lg n) = O(\lg n)$.
     \item delete(s, t): delete s and t separately (if duplicate start/end times exist, ensure that the s node has value $+1$ and the t node has value $-1$). $2O(\lg n) = O(\lg n)$
-    \item max_overlap(): return $root.max$. $O(1)$
+    \item max-overlap(): return $root.max$. $O(1)$
 \end{itemize}
 As shown above, $root.max$ is correct and can be maintained through log-time deletions and insertions, so this all works. We're done!
 
 \end{enumerate}
-\end{ques}
-
 
 \end{document}
