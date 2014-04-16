@@ -72,19 +72,63 @@ And that's everything.
   \b{Proof of correctness:} at any start time $s_i$, we have ``started'' all events that start before $s_i$, because we visit the start times in sorted order. Similarly, we have ``ended'' all events that end before $s_i$, because we visit end times until we can't anymore without surpassing $s_i$. Observe that the number of simultaneous events at any point in time is the number of events that have started but not ended. In addition, this number only increases at the moment an event starts; thus, the maximum will occur at one of these moments. We do examine all the start times, ensuring we get the correct maximum.
 
   \item 
-  % Red/Black tree of start times with addl info: 
-  %     max overlap of subtree rooted at node
-  %     start time of this maximum overlap interval
-  %     end time of this maximum overlap interval
+  \b{Overview:} we use a augmented balanced BST of times (storing start and end times separately). We can separate start and end times without changing the max overlap, as proved in (i).
+  \b{Representation:} a standard balanced BST (like a Red/Black tree) with the following information at each node:
+  \begin{itemize}
+    \item n.value: +1 for start times and -1 for end times 
+    \item n.total: the sum of values of all the nodes in the subtree rooted at n
+    \item n.max: the maximum overlap of the subtree rooted at n, starting at the first time in the subtree
+  \end{itemize}
+  \b{Calculating n.total:} $n.total = n.left.total + n.value + n.right.total$, calculated in $O(1)$ time by examining child nodes (so it can be maintained without changing BST runtimes). Proof of correctness is trivial.
+  \b{Calculating n.max:} $n.max = max(n.left.max, n.left.total + n.value, n.left.total + n.value + n.right.max)$, calculated in $O(1)$ time by examining child nodes (so it can be maintained without changing BST runtimes).
 
-  % Red/Black tree of {start, end} times [possibly with end times rearranged/sorted?]
+  \b{Note:}  mean that n.total and n.max can be maintained through insertions and deletions
 
-  % Red/Black tree of times (both start and end) with:
-  %     score: +1 or -1 for start or end
-  %     max score-so-far of either child
-  %     total score of subtree ?
-  %     score-so-far at node.time
-  %         left-child vs right-child, something with score of children
+  \b{Proof of correctness of n.max:} by induction over h (height of tree).
+
+  Base case: h = 2 (one event), with root node r and child c. 
+
+  Case 1: $r.value = +1, c.value = -1$. c must be the right child of r, since start times must follow end times. 
+  $$c.max = max(0, 0 - 1, 0 - 1 + 0) = 0; r.max = max(0, 0 + 1, 0 + 1 + 0) = 1$$
+  Case 2: $r.value = -1, c.value = +1$. c must be the left child of r.
+  $$c.max = (0, 0 + 1, 0 + 1 + 0) = 1; r.max = max(1, 1 - 1, 1 - 1 + 0) = 1$$
+  These cases are exhaustive because the total value of the tree must be 0 (all that starts must come to an end) and the start time must precede the end time. In both cases, $r.max = 1$, which is the correct max overlap of a single event.
+
+  Inductive step: assume that $root.max$ is correct for trees of height k. Let $r$ be the root of a tree of height $k+1$.
+
+  First, observe that $r.left.max$ and $r.right.max$ are correct, since their respective subtrees are of height $k$. 
+
+  Next, recall from part $(i)$ that the max overlap is the maximum sum of values (\pm 1) from the first time $n_0$ to some time $n_m$.
+
+  Case 1: $n_m$ is contained in the left subtree. Thus the max overlap of the left subtree is the max overlap of the whole tree, so $r.left.max$ gives us the correct max overlap.
+
+  Case 2: $n_m = r$. Thus the max overlap is the sum of values from $n_0$ to $r$. Since all times before $r$ are contained in its left subtree, $r.left.total + r.value$ gives us the correct max overlap.
+
+  Case 3: $n_m$ is contained in the right subtree. The max overlap is the $sumOfValues[n_0, n_m]$, which can be broken down as follows: $$sumOfValues[n_0, r] + sumOfValues[succ(r), n_m]$$
+  It's obvious that 
+  $$sumOfValues[n_0, r] = r.left.total + r.value$$
+
+  Next, by lemma 1, we know that the optimal $n_m$ within the whole tree is the same as the optimal $n_m$ within the right subtree. We also know that the leftmost value in the right subtree is $succ(r)$ by BST definition. Thus, 
+  $$r.right.max = sumOfValues[succ(r), n_m]$$
+  Adding these two results together gives us
+  $$max\ overlap = sumOfValues[n_0, n_m] = sumOfValues[n_0, r] + sumOfValues[succ(r), n_m] = r.left.total + r.value + r.right.max$$
+
+  These 3 cases are exhaustive ($n_m$ has to be somewhere), so the max overlap will be one of these 3 results, 
+  $$n.left.max, n.left.total + n.value, n.left.total + n.value + n.right.max$$
+  Since $r.max$ is exactly the max of these three options, $r.max$ is correct. QED.
+
+  Lemma 1: if the optimal $n_m$ for the whole tree is contained within the right subtree, then it's equal to the optimal $n_m$ looking at only the right subtree (so, starting at $succ(r)$ instead of $n_0$).
+
+  Proof of Lemma 1: by contradiction. Assume $n_m$ is optimal for the big tree but $n_q$ is optimal for the little tree. Thus the max overlap for the entire tree is $sumOfValues[n_0, n_m]$ but $sumOfValues[succ(r), n_m] < sumOfValues[succ(r), n_q]$. This means $sumOfValues[0, n_q] > sumOfValues[n_0, n_m]$, contradicting the optimality of $n_m$. QED.
+
+  \b{Now that we've proved all that...}
+  \begin{itemize}
+    \item insert(s, t): insert s and t separately into the augmented BST. $2O(\lg n) = O(\lg n)$.
+    \item delete(s, t): delete s and t separately (if duplicate start/end times exist, ensure that the s node has value $+1$ and the t node has value $-1$). $2O(\lg n) = O(\lg n)$
+    \item max_overlap(): return $root.max$. $O(1)$
+\end{itemize}
+As shown above, $root.max$ is correct and can be maintained through log-time deletions and insertions, so this all works. We're done!
+
 \end{enumerate}
 \end{ques}
 
